@@ -1,12 +1,13 @@
 package main
 
 import (
+	"github.com/deriannavy/microgo/internal"
 	"log"
 )
 
 func main() {
 	cfg := config{
-		addr: ":8080",
+		addr: env.GetEnvString("ADDR", ":8080"),
 	}
 
 	app := &application{
