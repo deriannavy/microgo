@@ -1,0 +1,28 @@
+name: microgo
+
+services:
+
+  db:
+    container_name: database-microgo
+    image: postgres:16.3
+    environment:
+      POSTGRES_DB: finance
+      POSTGRES_USER: accounts
+      POSTGRES_PASSWORD: 4cc0unts
+    volumes:
+      - db-microgo-data:/var/lib/postgresql/data
+    ports:
+      - "5430:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "accounts", "-d", "finance" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+volumes:
+  db-microgo-data:
+
+networks:
+  internal: {}
