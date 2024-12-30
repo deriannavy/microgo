@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/deriannavy/microgo/internal/store"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/deriannavy/microgo/internal/store"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type application struct {
@@ -46,6 +47,10 @@ func (app *application) mount() http.Handler {
 
 		r.Route("/transactions", func(r chi.Router) {
 			r.Post("/", app.createTransactionHandler)
+
+			r.Route("/{transactionId}", func(r chi.Router) {
+				r.Post("/", app.getTransactionHandler)
+			})
 		})
 	})
 

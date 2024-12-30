@@ -6,7 +6,7 @@ import (
 )
 
 type Account struct {
-	ID        int64  `json:"id"`
+	Id        int64  `json:"id"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
 	Password  string `json:"-"`
@@ -29,7 +29,7 @@ func (s *AccountStore) Register(ctx context.Context, account *Account) error {
 		account.Password,
 		account.Email,
 	).Scan(
-		&account.ID,
+		&account.Id,
 	)
 	if err != nil {
 		return err

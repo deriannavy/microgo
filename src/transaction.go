@@ -1,12 +1,16 @@
 package main
 
 import (
-	"github.com/deriannavy/microgo/internal/store"
+	"errors"
 	"net/http"
+	"strconv"
+
+	"github.com/deriannavy/microgo/internal/store"
+	"github.com/go-chi/chi/v5"
 )
 
 type CreateTransactionPayload struct {
-	AccountID int64  `json:"account_id"`
+	AccountId int64  `json:"account_id"`
 	Date      string `json:"date"`
 	Amount    int32  `json:"amount"`
 	// accountOut
@@ -17,14 +21,57 @@ type CreateTransactionPayload struct {
 }
 
 func (app *application) createTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	var transaction store.Transaction
-	if err := readJSON(w, r, transaction); err != nil {
-		writeJSON(w, http.StatusBadRequest, err.Error())
+	var payload CreateTransactionPayload
+	if err := readJSON(w, r, payload); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
-	accountID := 1
+
+	transaction := &store.Transaction{
+		AccountId:   1,
+		Date:        payload.Date,
+		Amount:      payload.Amount,
+		Place:       payload.Place,
+		Description: payload.Description,
+		Tag:         payload.Tag,
+	}
 
 	ctx := r.Context()
 
-	app.store.Transaction.Create(ctx)
+	if err := app.store.Transaction.Create(ctx, transaction); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusCreated, transaction); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+}
+
+func (app *application) getTransactionHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "transactionId")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	ctx := r.Context()
+
+	transaction, err := app.store.Transaction.GetById(ctx, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.notFoundResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, transaction); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
 }

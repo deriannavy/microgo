@@ -3,12 +3,14 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
+
 	"github.com/lib/pq"
 )
 
 type Transaction struct {
-	ID        int64  `json:"id"`
-	AccountID int64  `json:"account_id"`
+	Id        int64  `json:"id"`
+	AccountId int64  `json:"account_id"`
 	Date      string `json:"date"`
 	Amount    int32  `json:"amount"`
 	// accountOut
@@ -30,15 +32,15 @@ func (s *TransactionStore) Create(ctx context.Context, transaction *Transaction)
 	err := s.db.QueryRowContext(
 		ctx,
 		query,
-		transaction.ID,
-		transaction.AccountID,
+		transaction.Id,
+		transaction.AccountId,
 		transaction.Date,
 		transaction.Amount,
 		transaction.Place,
 		transaction.Description,
 		pq.Array(transaction.Tag),
 	).Scan(
-		&transaction.ID,
+		&transaction.Id,
 	)
 
 	if err != nil {
@@ -46,4 +48,29 @@ func (s *TransactionStore) Create(ctx context.Context, transaction *Transaction)
 	}
 
 	return nil
+}
+
+func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction, error) {
+	query := `SELECT id, account_id, date, amount, place, description, tag FROM transaction WHERE id = $1;`
+
+	var transaction Transaction
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&transaction.Id,
+		&transaction.AccountId,
+		&transaction.Date,
+		&transaction.Amount,
+		&transaction.Place,
+		&transaction.Description,
+		pq.Array(transaction.Tag),
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &transaction, nil
 }
