@@ -10,7 +10,7 @@ import (
 )
 
 type CreateTransactionPayload struct {
-	AccountId int64  `json:"account_id"`
+	AccountId int64  `json:"account_id" validate:"required,max=200"`
 	Date      string `json:"date"`
 	Amount    int32  `json:"amount"`
 	// accountOut
