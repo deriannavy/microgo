@@ -10,19 +10,24 @@ import (
 )
 
 type CreateTransactionPayload struct {
-	AccountId int64  `json:"account_id" validate:"required,max=200"`
+	AccountId int64  `json:"account_id"`
 	Date      string `json:"date"`
 	Amount    int32  `json:"amount"`
 	// accountOut
 	// accountIN
-	Place       string   `json:"place"`
-	Description string   `json:"description"`
+	Place       string   `json:"place" validate:"required,max=100"`
+	Description string   `json:"description" validate:"required,max=100"`
 	Tag         []string `json:"tag"`
 }
 
 func (app *application) createTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreateTransactionPayload
-	if err := readJSON(w, r, payload); err != nil {
+	if err := readJSON(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}

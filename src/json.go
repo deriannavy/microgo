@@ -6,12 +6,10 @@ import (
 	"net/http"
 )
 
-var Validate *validate.Validate
+var Validate *validator.Validate
 
 func init() {
-	Validate = validator.New()
-
-	validator.
+	Validate = validator.New(validator.WithRequiredStructEnabled())
 }
 
 func writeJSON(w http.ResponseWriter, status int, data any) error {

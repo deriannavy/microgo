@@ -45,11 +45,11 @@ func (app *application) mount() http.Handler {
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
 
-		r.Route("/transactions", func(r chi.Router) {
+		r.Route("/transaction", func(r chi.Router) {
 			r.Post("/", app.createTransactionHandler)
 
 			r.Route("/{transactionId}", func(r chi.Router) {
-				r.Post("/", app.getTransactionHandler)
+				r.Get("/", app.getTransactionHandler)
 			})
 		})
 	})

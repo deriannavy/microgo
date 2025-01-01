@@ -3,10 +3,11 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 var (
-	ErrNotFound = error.New("Not found")
+	ErrNotFound = errors.New("Not found")
 )
 
 type Storage struct {
