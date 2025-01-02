@@ -18,6 +18,7 @@ type Transaction struct {
 	Place       string   `json:"place"`
 	Description string   `json:"description"`
 	Tag         []string `json:"tag"`
+	Version     int32    `json:"version"`
 }
 
 type TransactionStore struct {
@@ -51,7 +52,7 @@ func (s *TransactionStore) Create(ctx context.Context, transaction *Transaction)
 }
 
 func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction, error) {
-	query := `SELECT id, account_id, date, amount, place, description, tag FROM transaction WHERE id = $1;`
+	query := `SELECT id, account_id, date, amount, place, description, tag, version FROM transaction WHERE id = $1;`
 
 	var transaction Transaction
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
@@ -61,7 +62,8 @@ func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction,
 		&transaction.Amount,
 		&transaction.Place,
 		&transaction.Description,
-		pq.Array(transaction.Tag),
+		pq.Array(&transaction.Tag),
+		&transaction.Version,
 	)
 
 	if err != nil {
@@ -75,7 +77,7 @@ func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction,
 	return &transaction, nil
 }
 
-func (s *TransactionStore) Delete(ctx context.Context, transaction *Transaction) error {
+func (s *TransactionStore) Update(ctx context.Context, transaction *Transaction) error {
 	query := `
 		UPDATE 
 			transaction
@@ -86,10 +88,13 @@ func (s *TransactionStore) Delete(ctx context.Context, transaction *Transaction)
 			description = $4
 			tag = $5
 		WHERE
-			id = $6
+			id = $6 AND 
+			version = $7
+		RETURNING 
+			version
 	`
 
-	_, err := s.db.ExecContext(
+	err := s.db.QueryRowContext(
 		ctx,
 		query,
 		transaction.Date,
@@ -98,9 +103,17 @@ func (s *TransactionStore) Delete(ctx context.Context, transaction *Transaction)
 		transaction.Description,
 		pq.Array(transaction.Tag),
 		transaction.Id,
+		transaction.Version,
+	).Scan(
+		&transaction.Version,
 	)
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNotFound
+		default:
+			return err
+		}
 	}
 
 	return nil

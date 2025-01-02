@@ -102,13 +102,13 @@ func (app *application) getTransactionHandler(w http.ResponseWriter, r *http.Req
 }
 
 type UpdateTransactionPayload struct {
-	Date   string `json:"date"`
-	Amount int32  `json:"amount"`
+	Date   *string `json:"date"`
+	Amount *int32  `json:"amount"`
 	// accountOut
 	// accountIN
-	Place       string   `json:"place" validate:"omitempty,max=100"`
-	Description string   `json:"description" validate:"omitempty,max=100"`
-	Tag         []string `json:"tag"`
+	Place       *string   `json:"place" validate:"omitempty,max=100"`
+	Description *string   `json:"description" validate:"omitempty,max=100"`
+	Tag         *[]string `json:"tag"`
 }
 
 func (app *application) patchTransactionHandler(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +118,27 @@ func (app *application) patchTransactionHandler(w http.ResponseWriter, r *http.R
 	if err := readJSON(w, r, &payload); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if payload.Date != nil {
+		transaction.Date = *payload.Date
+	}
+	if payload.Amount != nil {
+		transaction.Amount = *payload.Amount
+	}
+	if payload.Place != nil {
+		transaction.Place = *payload.Place
+	}
+	if payload.Description != nil {
+		transaction.Description = *payload.Description
+	}
+	if payload.Tag != nil {
+		transaction.Tag = *payload.Tag
 	}
 
 	if err := app.store.Transaction.Update(r.Context(), transaction); err != nil {
