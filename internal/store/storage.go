@@ -17,6 +17,8 @@ type Storage struct {
 	Transaction interface {
 		Create(context.Context, *Transaction) error
 		GetById(context.Context, int64) (*Transaction, error)
+		Update(context.Context, *Transaction) error
+		Delete(context.Context, int64) error
 	}
 }
 

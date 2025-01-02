@@ -49,7 +49,13 @@ func (app *application) mount() http.Handler {
 			r.Post("/", app.createTransactionHandler)
 
 			r.Route("/{transactionId}", func(r chi.Router) {
+
+				r.Use(app.transactionContextMiddleware)
+
 				r.Get("/", app.getTransactionHandler)
+				r.Patch("/", app.patchTransactionHandler)
+				r.Delete("/", app.deleteTransactionHandler)
+
 			})
 		})
 	})

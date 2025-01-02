@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -18,6 +19,41 @@ type CreateTransactionPayload struct {
 	Place       string   `json:"place" validate:"required,max=100"`
 	Description string   `json:"description" validate:"required,max=100"`
 	Tag         []string `json:"tag"`
+}
+
+type transactionKey string
+
+const transactionCtx transactionKey = "transaction"
+
+func (app *application) transactionContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idParam := chi.URLParam(r, "transactionId")
+		transactionId, err := strconv.ParseInt(idParam, 10, 64)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		ctx := r.Context()
+
+		transaction, err := app.store.Transaction.GetById(ctx, transactionId)
+		if err != nil {
+			switch {
+			case errors.Is(err, store.ErrNotFound):
+				app.notFoundResponse(w, r, err)
+			default:
+				app.internalServerError(w, r, err)
+			}
+			return
+		}
+
+		ctx = context.WithValue(ctx, transactionCtx, transaction)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func getTransactionFromCtx(r *http.Request) *store.Transaction {
+	transaction, _ := r.Context().Value(transactionCtx).(*store.Transaction)
+	return transaction
 }
 
 func (app *application) createTransactionHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,16 +91,57 @@ func (app *application) createTransactionHandler(w http.ResponseWriter, r *http.
 }
 
 func (app *application) getTransactionHandler(w http.ResponseWriter, r *http.Request) {
+
+	transaction := getTransactionFromCtx(r)
+
+	if err := writeJSON(w, http.StatusOK, transaction); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+}
+
+type UpdateTransactionPayload struct {
+	Date   string `json:"date"`
+	Amount int32  `json:"amount"`
+	// accountOut
+	// accountIN
+	Place       string   `json:"place" validate:"omitempty,max=100"`
+	Description string   `json:"description" validate:"omitempty,max=100"`
+	Tag         []string `json:"tag"`
+}
+
+func (app *application) patchTransactionHandler(w http.ResponseWriter, r *http.Request) {
+
+	transaction := getTransactionFromCtx(r)
+	var payload UpdateTransactionPayload
+	if err := readJSON(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := app.store.Transaction.Update(r.Context(), transaction); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, transaction); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+}
+
+func (app *application) deleteTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "transactionId")
-	id, err := strconv.ParseInt(idParam, 10, 64)
+	transactionId, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
 	ctx := r.Context()
 
-	transaction, err := app.store.Transaction.GetById(ctx, id)
-	if err != nil {
+	if err := app.store.Transaction.Delete(ctx, transactionId); err != nil {
 		switch {
 		case errors.Is(err, store.ErrNotFound):
 			app.notFoundResponse(w, r, err)
@@ -74,9 +151,5 @@ func (app *application) getTransactionHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := writeJSON(w, http.StatusOK, transaction); err != nil {
-		app.internalServerError(w, r, err)
-		return
-	}
-
+	w.WriteHeader(http.StatusNoContent)
 }

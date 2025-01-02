@@ -74,3 +74,54 @@ func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction,
 	}
 	return &transaction, nil
 }
+
+func (s *TransactionStore) Delete(ctx context.Context, transaction *Transaction) error {
+	query := `
+		UPDATE 
+			transaction
+		SET
+			date = $1
+			amount = $2
+			place = $3
+			description = $4
+			tag = $5
+		WHERE
+			id = $6
+	`
+
+	_, err := s.db.ExecContext(
+		ctx,
+		query,
+		transaction.Date,
+		transaction.Amount,
+		transaction.Place,
+		transaction.Description,
+		pq.Array(transaction.Tag),
+		transaction.Id,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *TransactionStore) Delete(ctx context.Context, transactionId int64) error {
+	query := `DELETE FROM transaction WHERE id = $1`
+
+	res, err := s.db.ExecContext(ctx, query, transactionId)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
