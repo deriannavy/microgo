@@ -82,11 +82,12 @@ func (s *TransactionStore) Update(ctx context.Context, transaction *Transaction)
 		UPDATE 
 			transaction
 		SET
-			date = $1
-			amount = $2
-			place = $3
-			description = $4
-			tag = $5
+			date = $1,
+			amount = $2,
+			place = $3,
+			description = $4,
+			tag = $5,
+			version = ($7 + 1)
 		WHERE
 			id = $6 AND 
 			version = $7
