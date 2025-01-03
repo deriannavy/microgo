@@ -22,6 +22,9 @@ func (s *AccountStore) Register(ctx context.Context, account *Account) error {
 		INSERT INTO account (username, password, email) VALUES ($1, $2, $3) RETURNING id;
 	`
 
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	err := s.db.QueryRowContext(
 		ctx,
 		query,

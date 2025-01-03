@@ -30,9 +30,10 @@ func (app *application) transactionContextMiddleware(next http.Handler) http.Han
 		idParam := chi.URLParam(r, "transactionId")
 		transactionId, err := strconv.ParseInt(idParam, 10, 64)
 		if err != nil {
-			app.internalServerError(w, r, err)
+			app.badRequestResponse(w, r, err)
 			return
 		}
+
 		ctx := r.Context()
 
 		transaction, err := app.store.Transaction.GetById(ctx, transactionId)

@@ -43,19 +43,31 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
+
 		r.Get("/health", app.healthCheckHandler)
 
+		// A C C O U N T   R O U T E R
+		r.Route("/account", func(r chi.Router) {
+
+			r.Route("/{accountId}", func(r chi.Router) {
+				// G E T   A C C O U N T
+				r.Get("/", app.getAccountHandler)
+			})
+		})
+
+		// T R A N S A C T I O N   R O U T E R
 		r.Route("/transaction", func(r chi.Router) {
+			// P O S T   T R A N S A C T I O N
 			r.Post("/", app.createTransactionHandler)
-
 			r.Route("/{transactionId}", func(r chi.Router) {
-
+				// M I D D L E W A R E   T R A N S A C T I O N
 				r.Use(app.transactionContextMiddleware)
-
+				// G E T   T R A N S A C T I O N
 				r.Get("/", app.getTransactionHandler)
+				// P A T C H   T R A N S A C T I O N
 				r.Patch("/", app.patchTransactionHandler)
+				// D E L E T E   T R A N S A C T I O N
 				r.Delete("/", app.deleteTransactionHandler)
-
 			})
 		})
 	})

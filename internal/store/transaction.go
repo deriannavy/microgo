@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-
 	"github.com/lib/pq"
 )
 
@@ -30,6 +29,10 @@ func (s *TransactionStore) Create(ctx context.Context, transaction *Transaction)
 		INSERT INTO transaction (id, account_id, date, amount, place, description, tag)
 		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	err := s.db.QueryRowContext(
 		ctx,
 		query,
@@ -53,6 +56,9 @@ func (s *TransactionStore) Create(ctx context.Context, transaction *Transaction)
 
 func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction, error) {
 	query := `SELECT id, account_id, date, amount, place, description, tag, version FROM transaction WHERE id = $1;`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
 	var transaction Transaction
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
@@ -95,6 +101,9 @@ func (s *TransactionStore) Update(ctx context.Context, transaction *Transaction)
 			version
 	`
 
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	err := s.db.QueryRowContext(
 		ctx,
 		query,
@@ -122,6 +131,9 @@ func (s *TransactionStore) Update(ctx context.Context, transaction *Transaction)
 
 func (s *TransactionStore) Delete(ctx context.Context, transactionId int64) error {
 	query := `DELETE FROM transaction WHERE id = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
 	res, err := s.db.ExecContext(ctx, query, transactionId)
 	if err != nil {

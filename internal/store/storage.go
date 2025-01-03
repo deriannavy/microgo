@@ -4,15 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
-	ErrNotFound = errors.New("Not found")
+	ErrNotFound          = errors.New("Not found")
+	QueryTimeoutDuration = time.Second * 5
 )
 
 type Storage struct {
 	Account interface {
 		Register(context.Context, *Account) error
+		GetById(context.Context, int64) (*Account, error)
 	}
 	Transaction interface {
 		Create(context.Context, *Transaction) error
