@@ -48,8 +48,9 @@ func (app *application) mount() http.Handler {
 
 		// A C C O U N T   R O U T E R
 		r.Route("/account", func(r chi.Router) {
-
 			r.Route("/{accountId}", func(r chi.Router) {
+				// M I D D L E W A R E   A C C O U N T
+				r.Use(app.accountContextMiddleware)
 				// G E T   A C C O U N T
 				r.Get("/", app.getAccountHandler)
 			})
@@ -57,6 +58,8 @@ func (app *application) mount() http.Handler {
 
 		// T R A N S A C T I O N   R O U T E R
 		r.Route("/transaction", func(r chi.Router) {
+			// G E T   I N D E X   T R A N S A C T I O N
+			r.Post("/", app.getIndexTransactionHandler)
 			// P O S T   T R A N S A C T I O N
 			r.Post("/", app.createTransactionHandler)
 			r.Route("/{transactionId}", func(r chi.Router) {

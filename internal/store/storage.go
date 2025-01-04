@@ -14,12 +14,13 @@ var (
 
 type Storage struct {
 	Account interface {
-		Register(context.Context, *Account) error
+		Create(context.Context, *Account) error
 		GetById(context.Context, int64) (*Account, error)
 	}
 	Transaction interface {
 		Create(context.Context, *Transaction) error
 		GetById(context.Context, int64) (*Transaction, error)
+		GetByAccountId(context.Context, int64) ([]TransactionWithMetadata, error)
 		Update(context.Context, *Transaction) error
 		Delete(context.Context, int64) error
 	}

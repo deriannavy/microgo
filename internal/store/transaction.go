@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/lib/pq"
 )
 
@@ -18,6 +19,11 @@ type Transaction struct {
 	Description string   `json:"description"`
 	Tag         []string `json:"tag"`
 	Version     int32    `json:"version"`
+}
+
+type TransactionWithMetadata struct {
+	Transaction
+	WeekNumber int `json:"week_number"`
 }
 
 type TransactionStore struct {
@@ -81,6 +87,44 @@ func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction,
 		}
 	}
 	return &transaction, nil
+}
+
+func (s *TransactionStore) GetByAccountId(ctx context.Context, accountId int64) ([]TransactionWithMetadata, error) {
+	query := `SELECT id, account_id, date, amount, place, description, tag, version, week_number FROM transaction WHERE account_id = $1;`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(ctx, query, accountId)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	var transactionList []TransactionWithMetadata
+	for rows.Next() {
+		var t TransactionWithMetadata
+
+		err := rows.Scan(
+			&t.Id,
+			&t.AccountId,
+			&t.Date,
+			&t.Amount,
+			&t.Place,
+			&t.Description,
+			pq.Array(&t.Tag),
+			&t.Version,
+			&t.WeekNumber,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		transactionList = append(transactionList, t)
+	}
+
+	return transactionList, nil
 }
 
 func (s *TransactionStore) Update(ctx context.Context, transaction *Transaction) error {

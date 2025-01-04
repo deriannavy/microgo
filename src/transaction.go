@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -38,8 +37,8 @@ func (app *application) transactionContextMiddleware(next http.Handler) http.Han
 
 		transaction, err := app.store.Transaction.GetById(ctx, transactionId)
 		if err != nil {
-			switch {
-			case errors.Is(err, store.ErrNotFound):
+			switch err {
+			case store.ErrNotFound:
 				app.notFoundResponse(w, r, err)
 			default:
 				app.internalServerError(w, r, err)
@@ -100,6 +99,20 @@ func (app *application) getTransactionHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+}
+
+func (app *application) getIndexTransactionHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	transactions, err := app.store.Transaction.GetByAccountId(ctx, int64(42))
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, transactions); err != nil {
+		app.internalServerError(w, r, err)
+	}
 }
 
 type UpdateTransactionPayload struct {
@@ -164,8 +177,8 @@ func (app *application) deleteTransactionHandler(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 
 	if err := app.store.Transaction.Delete(ctx, transactionId); err != nil {
-		switch {
-		case errors.Is(err, store.ErrNotFound):
+		switch err {
+		case store.ErrNotFound:
 			app.notFoundResponse(w, r, err)
 		default:
 			app.internalServerError(w, r, err)
