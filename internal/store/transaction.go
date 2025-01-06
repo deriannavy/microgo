@@ -89,13 +89,29 @@ func (s *TransactionStore) GetById(ctx context.Context, id int64) (*Transaction,
 	return &transaction, nil
 }
 
-func (s *TransactionStore) GetByAccountId(ctx context.Context, accountId int64) ([]TransactionWithMetadata, error) {
-	query := `SELECT id, account_id, date, amount, place, description, tag, version, week_number FROM transaction WHERE account_id = $1;`
+func (s *TransactionStore) GetByAccountId(ctx context.Context, accountId int64, fq PaginatedTransactionQuery) ([]TransactionWithMetadata, error) {
+	query := `
+	SELECT 
+    	id, 
+    	account_id, 
+	    date, 
+	    amount, 
+	    place, 
+	    description, 
+	    tag, 
+	    version, 
+	    week_number 
+	FROM 
+	    transaction 
+	WHERE 
+	    account_id = $1
+	ORDER BY date DESC 
+	LIMIT $3 OFFSET $4;`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
-	rows, err := s.db.QueryContext(ctx, query, accountId)
+	rows, err := s.db.QueryContext(ctx, query, accountId, fq.Sort, fq.Limit, fq.Offset)
 	if err != nil {
 		return nil, err
 	}

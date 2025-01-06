@@ -45,6 +45,20 @@ func getAccountFromCtx(r *http.Request) *store.Account {
 	return account
 }
 
+// GetAccountHandler godoc
+//
+//	@Sumary			feteches
+//	@Description	feteches
+//	@Tags			Accounts
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int	true	"Account Id"
+//	@Success		200	{object}	store.Account
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Security		ApyKeyAuth
+//	@Router			/accounts/{id} [get]
 func (app *application) getAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 	account := getAccountFromCtx(r)

@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/deriannavy/microgo/docs"
 	"github.com/deriannavy/microgo/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type application struct {
@@ -16,9 +19,11 @@ type application struct {
 }
 
 type config struct {
-	addr string
-	db   dbConfig
-	env  string
+	addr       string
+	db         dbConfig
+	env        string
+	apiURL     string
+	apiVersion string
 }
 
 type dbConfig struct {
@@ -42,10 +47,16 @@ func (app *application) mount() http.Handler {
 	// processing should be stopped
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Route("/v1", func(r chi.Router) {
+	// D O C U M E N T A T I O N
+	docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
+	r.Get("/docs/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
-		r.Get("/health", app.healthCheckHandler)
+	// H E A L T H
+	r.Get("/health", app.healthCheckHandler)
 
+	r.Route(app.config.apiVersion, func(r chi.Router) {
+		// A C C E S S   R O U T E R  --  P U B L I C
+		r.Post("/register", app.registerAccountHandler)
 		// A C C O U N T   R O U T E R
 		r.Route("/account", func(r chi.Router) {
 			r.Route("/{accountId}", func(r chi.Router) {
@@ -73,12 +84,17 @@ func (app *application) mount() http.Handler {
 				r.Delete("/", app.deleteTransactionHandler)
 			})
 		})
+
 	})
 
 	return r
 }
 
 func (app *application) run(mux http.Handler) error {
+
+	docs.SwaggerInfo.Version = version
+	docs.SwaggerInfo.Host = app.config.apiURL
+	docs.SwaggerInfo.BasePath = app.config.apiVersion
 
 	srv := &http.Server{
 		Addr:         app.config.addr,

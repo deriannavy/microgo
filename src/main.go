@@ -9,6 +9,23 @@ import (
 
 const version = "0.0.1"
 
+//	@title			Swagger Example API
+//	@description	This is a sample server Petstore server.
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
+//	@contact.url	http://www.swagger.io/support
+//	@contact.email	support@swagger.io
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @BasePath					/v1
+//
+// @securityDefinitions.apikey	ApikeyAuth
+// @in							header
+// @name						Autorization
+// @description
 func main() {
 	cfg := config{
 		addr: env.GetEnvString("ADDR", ":8080"),
@@ -18,7 +35,9 @@ func main() {
 			maxIdleConns: env.GetEnvInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetEnvString("DB_MAX_IDLE_TIME", "15m"),
 		},
-		env: env.GetEnvString("ENV", "development"),
+		env:        env.GetEnvString("ENV", "development"),
+		apiURL:     env.GetEnvString("API_URL", "localhost:8080"),
+		apiVersion: env.GetEnvString("API_VERSION", "/v1"),
 	}
 
 	newDB, err := db.New(

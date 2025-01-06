@@ -11,3 +11,7 @@ migrate-up:
 .PHONY: migrate-down
 migrate-down:
 	@migrate -path=$(MIGRATIONS_PATH) -database=$(DB_ADDR) down $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: gen-docs
+gen-docs:
+	@swag init -g ./main.go -d src,internal/store && swag fmt

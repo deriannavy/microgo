@@ -102,9 +102,22 @@ func (app *application) getTransactionHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (app *application) getIndexTransactionHandler(w http.ResponseWriter, r *http.Request) {
+
+	fq := store.PaginatedTransactionQuery{
+		Limit:  50,
+		Offset: 0,
+		Sort:   "desc",
+	}
+
+	fq, err := fq.Parse(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	ctx := r.Context()
 
-	transactions, err := app.store.Transaction.GetByAccountId(ctx, int64(42))
+	transactions, err := app.store.Transaction.GetByAccountId(ctx, int64(42), fq)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
