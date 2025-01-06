@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS account(
    username  citext UNIQUE NOT NULL,
    email     citext UNIQUE NOT NULL,
    password  bytea,
-   created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+   is_active BOOLEAN NOT NULL DEFAULT FALSE
 )
 

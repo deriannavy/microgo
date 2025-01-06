@@ -1,0 +1,62 @@
+basePath: /v1
+definitions:
+  store.Account:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Petstore server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+paths:
+  /accounts/{id}:
+    get:
+      consumes:
+      - application/json
+      description: feteches
+      parameters:
+      - description: Account Id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.Account'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApyKeyAuth: []
+      tags:
+      - Accounts
+securityDefinitions:
+  ApikeyAuth:
+    in: header
+    name: Autorization
+    type: apiKey
+swagger: "2.0"

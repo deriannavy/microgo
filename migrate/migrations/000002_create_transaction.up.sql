@@ -6,5 +6,6 @@ CREATE TABLE IF NOT EXISTS transaction(
 	place varchar(255) NOT NULL,
 	description varchar(255) NOT NULL,
 	tag varchar(255)[] NOT NULL,
+	version int default 0,
     FOREIGN KEY (account_id) REFERENCES account(id)
 )
