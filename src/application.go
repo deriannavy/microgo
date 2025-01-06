@@ -18,12 +18,17 @@ type application struct {
 	store  store.Storage
 }
 
+type mailConfig struct {
+	exp time.Duration
+}
+
 type config struct {
 	addr       string
 	db         dbConfig
 	env        string
 	apiURL     string
 	apiVersion string
+	mail       mailConfig
 }
 
 type dbConfig struct {

@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"github.com/deriannavy/microgo/internal/store"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -46,8 +50,21 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 
 	ctx := r.Context()
 
-	if err := app.store.Account.CreateAndConfirm(ctx, account, "asa"); err != nil {
+	token := uuid.New().String()
+	hash := sha256.Sum256([]byte(token))
+	hashToken := hex.EncodeToString(hash[:])
 
+	err := app.store.Account.CreateAndConfirm(ctx, account, hashToken, app.config.mail.exp)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrDuplicateEmail):
+			app.badRequestResponse(w, r, err)
+		case errors.Is(err, store.ErrDuplicateUsername):
+			app.badRequestResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
 	}
 
 	if err := writeJSON(w, http.StatusCreated, nil); err != nil {

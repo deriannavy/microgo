@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type Account struct {
@@ -34,7 +35,7 @@ type AccountStore struct {
 	db *sql.DB
 }
 
-func (s *AccountStore) Create(ctx context.Context, account *Account) error {
+func (s *AccountStore) Create(ctx context.Context, tx *sql.Tx, account *Account) error {
 	query := `
 		INSERT INTO account (username, password, email) VALUES ($1, $2, $3) RETURNING id;
 	`
@@ -42,7 +43,7 @@ func (s *AccountStore) Create(ctx context.Context, account *Account) error {
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
-	err := s.db.QueryRowContext(
+	err := tx.QueryRowContext(
 		ctx,
 		query,
 		account.Username,
@@ -57,14 +58,40 @@ func (s *AccountStore) Create(ctx context.Context, account *Account) error {
 	return nil
 }
 
-func (s *AccountStore) CreateAndConfirm(ctx context.Context, account *Account, token string) error {
+func (s *AccountStore) CreateAndConfirm(ctx context.Context, account *Account, token string, expiry time.Duration) error {
 	return withTx(s.db, ctx, func(tx *sql.Tx) error {
-		if err := s.Create(ctx, account); err != nil {
+		if err := s.Create(ctx, tx, account); err != nil {
+			return err
+		}
+
+		if err := s.CreateAccountConfirmation(ctx, tx, token, expiry, account.Id); err != nil {
 			return err
 		}
 		return nil
 	})
 }
+
+func (s *AccountStore) CreateAccountConfirmation(ctx context.Context, tx *sql.Tx, token string, expiry time.Duration, accountId int64) error {
+	query := `INSERT INTO account_confirmation (token, account_id, expiry) VALUES ($1, $2, $3);`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, query, token, accountId, time.Now().Add(expiry))
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "account_email_key"`:
+			return ErrDuplicateEmail
+		case err.Error() == `pq: duplicate key value violates unique constraint "account_username_key"`:
+			return ErrDuplicateUsername
+		default:
+			return err
+		}
+		return err
+	}
+	return nil
+}
+
 func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, error) {
 	query := `
 		SELECT id, username, password, email, created_at FROM account WHERE id = $1;

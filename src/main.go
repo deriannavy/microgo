@@ -5,6 +5,7 @@ import (
 	"github.com/deriannavy/microgo/internal/env"
 	"github.com/deriannavy/microgo/internal/store"
 	"log"
+	"time"
 )
 
 const version = "0.0.1"
@@ -38,6 +39,9 @@ func main() {
 		env:        env.GetEnvString("ENV", "development"),
 		apiURL:     env.GetEnvString("API_URL", "localhost:8080"),
 		apiVersion: env.GetEnvString("API_VERSION", "/v1"),
+		mail: mailConfig{
+			exp: time.Hour * 24 * 3, // 3 days
+		},
 	}
 
 	newDB, err := db.New(

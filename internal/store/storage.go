@@ -9,13 +9,15 @@ import (
 
 var (
 	ErrNotFound          = errors.New("Not found")
+	ErrDuplicateEmail    = errors.New("Duplicate email")
+	ErrDuplicateUsername = errors.New("Duplicate username")
 	QueryTimeoutDuration = time.Second * 5
 )
 
 type Storage struct {
 	Account interface {
-		Create(context.Context, *Account) error
-		CreateAndConfirm(context.Context, *Account, string) error
+		Create(ctx context.Context, tx *sql.Tx, account *Account) error
+		CreateAndConfirm(ctx context.Context, account *Account, token string, expiry time.Duration) error
 		GetById(context.Context, int64) (*Account, error)
 	}
 	Transaction interface {
