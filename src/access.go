@@ -57,7 +57,7 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 	hash := sha256.Sum256([]byte(token))
 	hashToken := hex.EncodeToString(hash[:])
 
-	err := app.store.Account.CreateAndConfirm(ctx, account, hashToken, app.config.mail.exp)
+	err := app.store.Account.CreateAndConfirm(ctx, account, hashToken, app.config.mailer.exp)
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrDuplicateEmail):
