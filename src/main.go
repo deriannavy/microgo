@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/deriannavy/microgo/internal/db"
-	"github.com/deriannavy/microgo/internal/env"
-	"github.com/deriannavy/microgo/internal/store"
 	"log"
 	"time"
+
+	"github.com/deriannavy/microgo/internal/db"
+	"github.com/deriannavy/microgo/internal/env"
+	"github.com/deriannavy/microgo/internal/mailer"
+	"github.com/deriannavy/microgo/internal/store"
 )
 
 const version = "0.0.1"
@@ -38,8 +40,13 @@ func main() {
 		},
 		env:        env.GetEnvString("ENV", "development"),
 		apiURL:     env.GetEnvString("API_URL", "localhost:8080"),
+		frontURL:   env.GetEnvString("API_URL", "http://localhost:8080"),
 		apiVersion: env.GetEnvString("API_VERSION", "/v1"),
-		mail: mailConfig{
+		mailer: mailConfig{
+			fromEmail: env.GetEnvString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apiKey: env.GetEnvString("API_KEY", ""),
+			},
 			exp: time.Hour * 24 * 3, // 3 days
 		},
 	}
@@ -59,9 +66,15 @@ func main() {
 
 	storage := store.NewStorage(newDB)
 
+	mail := mailer.NewSendGrid(
+		cfg.mailer.sendGrid.apiKey,
+		cfg.mailer.fromEmail,
+	)
+
 	app := &application{
 		config: cfg,
 		store:  storage,
+		mailer: mail,
 	}
 
 	mux := app.mount()

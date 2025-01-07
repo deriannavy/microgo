@@ -3,8 +3,9 @@ package store
 import (
 	"context"
 	"database/sql"
-	"golang.org/x/crypto/bcrypt"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Account struct {
@@ -123,4 +124,47 @@ func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, 
 	}
 	return account, nil
 
+}
+
+func (s *AccountStore) DeleteAccountAndConfirmations(ctx context.Context, accountId int64) error {
+	return withTx(s.db, ctx, func(tx *sql.Tx) error {
+		if err := s.Delete(ctx, tx, accountId); err != nil {
+			return err
+		}
+
+		if err := s.DeleteAccountConfirmations(ctx, tx, accountId); err != nil {
+			return err
+		}
+
+		return nil
+
+	})
+}
+
+func (s *AccountStore) Delete(ctx context.Context, tx *sql.Tx, id int64) err {
+	query := `DELETE FROM account WHERE id = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *AccountStore) DeleteAccountConfirmations(ctx context.Context, tx *sql.Tx, id int64) err {
+	query := `DELETE FROM account_confirmation WHERE account_id = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
