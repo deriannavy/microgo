@@ -4,9 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"net/http"
+
+	"github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 	"github.com/google/uuid"
-	"net/http"
 )
 
 type AccessPayload struct {
@@ -54,7 +57,7 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 	hash := sha256.Sum256([]byte(token))
 	hashToken := hex.EncodeToString(hash[:])
 
-	err := app.store.Account.CreateAndConfirm(ctx, account, hashToken, app.config.mail.exp)
+	err := app.store.Account.CreateAndConfirm(ctx, account, hashToken, app.config.mailer.exp)
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrDuplicateEmail):
@@ -64,6 +67,33 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 		default:
 			app.internalServerError(w, r, err)
 		}
+		return
+	}
+
+	activationURL := fmt.Stringf("%s/confirm/%s", app.config.frontURL, hashToken)
+	vars := struct {
+		Username      string
+		ActivationURL string
+	}{
+		Username:      account.Username,
+		ActivationURL: activationURL,
+	}
+
+	// send mail
+	err = app.mailer.Send(
+		mailer.AccountWelcomeTemplate,
+		account.Username,
+		account.Email,
+		vars,
+		false,
+	)
+
+	if err != nil {
+
+		if err := app.store.Account.Delete(ctx, account.Id); err != nil {
+			app.internalServerError(w, r, err)
+		}
+		app.internalServerError(w, r, err)
 		return
 	}
 

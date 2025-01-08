@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/deriannavy/microgo/docs"
+	"github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,10 +17,17 @@ import (
 type application struct {
 	config config
 	store  store.Storage
+	mailer mailer.Client
 }
 
 type mailConfig struct {
-	exp time.Duration
+	sendGrid  sendGridConfig
+	exp       time.Duration
+	fromEmail string
+}
+
+type sendGridConfig struct {
+	apiKey string
 }
 
 type config struct {
@@ -27,8 +35,9 @@ type config struct {
 	db         dbConfig
 	env        string
 	apiURL     string
+	frontURL   string
 	apiVersion string
-	mail       mailConfig
+	mailer     mailConfig
 }
 
 type dbConfig struct {
