@@ -28,7 +28,7 @@ type AccessPayload struct {
 // @Router /register
 func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Request) {
 	var payload AccessPayload
-	if err := readJSON(w, r, payload); err != nil {
+	if err := readJSON(w, r, &payload); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}

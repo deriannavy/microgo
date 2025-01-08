@@ -58,12 +58,15 @@ func (app *application) mount() http.Handler {
 
 	// H E A L T H
 	r.Get("/health", app.healthCheckHandler)
-
+	// V 1   R O U T E R
 	r.Route(app.config.apiVersion, func(r chi.Router) {
 		// A C C E S S   R O U T E R  --  P U B L I C
 		r.Post("/register", app.registerAccountHandler)
 		// A C C O U N T   R O U T E R
 		r.Route("/account", func(r chi.Router) {
+			// A C C O U N T   A C T I V A T E
+			r.Put("/activate/{token}", app.activateAccountHandler)
+
 			r.Route("/{accountId}", func(r chi.Router) {
 				// M I D D L E W A R E   A C C O U N T
 				r.Use(app.accountContextMiddleware)
