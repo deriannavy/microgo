@@ -6,7 +6,7 @@ import (
 
 	"github.com/deriannavy/microgo/internal/db"
 	"github.com/deriannavy/microgo/internal/env"
-	"github.com/deriannavy/microgo/internal/mailer"
+	// "github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 )
 
@@ -66,15 +66,15 @@ func main() {
 
 	storage := store.NewStorage(newDB)
 
-	mail := mailer.NewSendGrid(
-		cfg.mailer.sendGrid.apiKey,
-		cfg.mailer.fromEmail,
-	)
+	//mail := mailer.NewSendGrid(
+	//	cfg.mailer.sendGrid.apiKey,
+	//	cfg.mailer.fromEmail,
+	//)
 
 	app := &application{
 		config: cfg,
 		store:  storage,
-		mailer: mail,
+		//mailer: mail,
 	}
 
 	mux := app.mount()

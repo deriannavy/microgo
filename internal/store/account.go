@@ -110,7 +110,6 @@ func (s *AccountStore) CreateAccountConfirmation(ctx context.Context, tx *sql.Tx
 		default:
 			return err
 		}
-		return err
 	}
 	return nil
 }
@@ -137,8 +136,8 @@ func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, 
 	)
 
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
 			return nil, ErrNotFound
 		default:
 			return nil, err
