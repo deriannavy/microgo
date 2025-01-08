@@ -49,6 +49,12 @@ func main() {
 			},
 			exp: time.Hour * 24 * 3, // 3 days
 		},
+		auth: authConfig{
+			basic: basicConfig{
+				user: env.GetEnvString("AUTH_BASIC_USER", "admin"),
+				pass: env.GetEnvString("AUTH_BASIC_PASS", "admin"),
+			},
+		},
 	}
 
 	newDB, err := db.New(

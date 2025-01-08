@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type AccessPayload struct {
+type RegisterAccessPayload struct {
 	Username string `json:"username" validate:"required,max=100"`
 	Email    string `json:"email" validate:"required,email,max=100"`
 	Password string `json:"password" validate:"required,min=8,max=100"`
@@ -24,13 +24,13 @@ type AccessPayload struct {
 // @Description asx
 // @Accept json
 // @Produce json
-// @Param payload body AccessPayload true "Account Credentials"
+// @Param payload body RegisterAccessPayload true "Account Credentials"
 // @Success 201 {object} store.Account "Account Registered"
 // @Failure 400 {object} error
 // @Failure 500 {object} error
-// @Router /register
+// @Router /register [post]
 func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Request) {
-	var payload AccessPayload
+	var payload RegisterAccessPayload
 	if err := readJSON(w, r, payload); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -70,7 +70,7 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	activationURL := fmt.Stringf("%s/confirm/%s", app.config.frontURL, hashToken)
+	activationURL := fmt.Sprintf("%s/confirm/%s", app.config.frontURL, hashToken)
 	vars := struct {
 		Username      string
 		ActivationURL string
@@ -94,6 +94,51 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 			app.internalServerError(w, r, err)
 		}
 		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusCreated, nil); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+}
+
+type LoginAccessPayload struct {
+	Email    string `json:"email" validate:"required,max=100"`
+	Password string `json:"password" validate:"required,max=100"`
+}
+
+// loginAccount godoc
+//
+// @Sumary asas
+// @Description asx
+// @Accept json
+// @Produce json
+// @Param payload body LoginAccessPayload true "Account Credentials"
+// @Success 201 {object} store.Account "Account Registered"
+// @Failure 400 {object} error
+// @Failure 500 {object} error
+// @Router /login [post]
+func (app *application) loginAccountHandler(w http.ResponseWriter, r *http.Request) {
+	var payload LoginAccessPayload
+	if err := readJSON(w, r, payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	account, err := app.store.Account.GetByEmail(r.Context(), payload.Email)
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			app.unauthorizedErrorResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
 		return
 	}
 
