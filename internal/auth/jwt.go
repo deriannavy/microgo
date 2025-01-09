@@ -8,8 +8,8 @@ type JWTAuthenticator struct {
 	iss    string
 }
 
-func NewJWTAuthenticator(secret, aud, iss string) JWTAuthenticator {
-	return JWTAuthenticator{secret, aud, iss}
+func NewJWTAuthenticator(secret, aud, iss string) *JWTAuthenticator {
+	return &JWTAuthenticator{secret, aud, iss}
 }
 
 func (a *JWTAuthenticator) GenerateToken(claims jwt.Claims) (string, error) {
@@ -21,4 +21,8 @@ func (a *JWTAuthenticator) GenerateToken(claims jwt.Claims) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func (a *JWTAuthenticator) ValidateToken(token string) (*jwt.Token, error) {
+	return nil, nil
 }

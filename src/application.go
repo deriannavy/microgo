@@ -24,6 +24,13 @@ type application struct {
 
 type authConfig struct {
 	basic basicConfig
+	token tokenconfig
+}
+
+type tokenconfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 
 type basicConfig struct {

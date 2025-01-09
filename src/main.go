@@ -4,8 +4,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/deriannavy/microgo/internal/auth"
 	"github.com/deriannavy/microgo/internal/db"
 	"github.com/deriannavy/microgo/internal/env"
+
 	// "github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 )
@@ -54,6 +56,11 @@ func main() {
 				user: env.GetEnvString("AUTH_BASIC_USER", "admin"),
 				pass: env.GetEnvString("AUTH_BASIC_PASS", "admin"),
 			},
+			token: tokenconfig{
+				secret: env.GetEnvString("AUTH_TOKEN_SECRET", "admin"),
+				exp:    time.Hour * 24 * 1, // 1 day
+				iss:    env.GetEnvString("AUTH_TOKEN_ISS", "finance"),
+			},
 		},
 	}
 
@@ -77,10 +84,17 @@ func main() {
 	//	cfg.mailer.fromEmail,
 	//)
 
+	jwtAuthenticator := auth.NewJWTAuthenticator(
+		cfg.auth.token.secret,
+		cfg.auth.token.iss,
+		cfg.auth.token.iss,
+	)
+
 	app := &application{
 		config: cfg,
 		store:  storage,
 		//mailer: mail,
+		authenticator: jwtAuthenticator,
 	}
 
 	mux := app.mount()
