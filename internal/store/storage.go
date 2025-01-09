@@ -20,8 +20,8 @@ type Storage struct {
 		CreateAndConfirm(ctx context.Context, account *Account, token string, expiry time.Duration) error
 		Activate(context.Context, string) error
 		GetById(context.Context, int64) (*Account, error)
-		GetByEmail(context.Context, string) (*Account, error)
-		Delete(context.Context, int64) error
+		GetByEmail(ctx context.Context, email string) (*Account, error)
+		Delete(ctx context.Context, tx *sql.Tx, accountId int64) error
 	}
 	Transaction interface {
 		Create(context.Context, *Transaction) error

@@ -56,7 +56,7 @@ func main() {
 				user: env.GetEnvString("AUTH_BASIC_USER", "admin"),
 				pass: env.GetEnvString("AUTH_BASIC_PASS", "admin"),
 			},
-			token: tokenconfig{
+			token: tokenConfig{
 				secret: env.GetEnvString("AUTH_TOKEN_SECRET", "admin"),
 				exp:    time.Hour * 24 * 1, // 1 day
 				iss:    env.GetEnvString("AUTH_TOKEN_ISS", "finance"),

@@ -130,7 +130,7 @@ func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, 
 	).Scan(
 		&account.Id,
 		&account.Username,
-		&account.Password,
+		&account.Password.hash,
 		&account.Email,
 		&account.CreatedAt,
 	)
@@ -147,7 +147,7 @@ func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, 
 
 }
 
-func (s *AccountStore) GetByEmail(ctx context.Context, emai int64) (*Account, error) {
+func (s *AccountStore) GetByEmail(ctx context.Context, email string) (*Account, error) {
 	query := `
 		SELECT id, username, password, email, created_at FROM account WHERE email = $1 and is_active = true;
 	`
@@ -159,7 +159,7 @@ func (s *AccountStore) GetByEmail(ctx context.Context, emai int64) (*Account, er
 	err := s.db.QueryRowContext(
 		ctx,
 		query,
-		emai,
+		email,
 	).Scan(
 		&account.Id,
 		&account.Username,

@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"time"
 
-	"github.com/deriannavy/microgo/internal/mailer"
+	_ "github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 	"github.com/google/uuid"
 )
@@ -21,15 +21,15 @@ type RegisterAccessPayload struct {
 
 // registerAccount godoc
 //
-// @Sumary asas
-// @Description asx
-// @Accept json
-// @Produce json
-// @Param payload body RegisterAccessPayload true "Account Credentials"
-// @Success 201 {object} store.Account "Account Registered"
-// @Failure 400 {object} error
-// @Failure 500 {object} error
-// @Router /register [post]
+//	@Sumary			asas
+//	@Description	asx
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		RegisterAccessPayload	true	"Account Credentials"
+//	@Success		201		{object}	store.Account			"Account Registered"
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/register [post]
 func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Request) {
 	var payload RegisterAccessPayload
 	if err := readJSON(w, r, payload); err != nil {
@@ -71,23 +71,23 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	activationURL := fmt.Sprintf("%s/confirm/%s", app.config.frontURL, hashToken)
-	vars := struct {
-		Username      string
-		ActivationURL string
-	}{
-		Username:      account.Username,
-		ActivationURL: activationURL,
-	}
+	//activationURL := fmt.Sprintf("%s/confirm/%s", app.config.frontURL, hashToken)
+	//vars := struct {
+	//	Username      string
+	//	ActivationURL string
+	//}{
+	//	Username:      account.Username,
+	//	ActivationURL: activationURL,
+	//}
 
 	// send mail
-	err = app.mailer.Send(
-		mailer.AccountWelcomeTemplate,
-		account.Username,
-		account.Email,
-		vars,
-		false,
-	)
+	//err = app.mailer.Send(
+	//	mailer.AccountWelcomeTemplate,
+	//	account.Username,
+	//	account.Email,
+	//	vars,
+	//	false,
+	//)
 
 	if err != nil {
 
@@ -111,15 +111,15 @@ type LoginAccessPayload struct {
 
 // loginAccount godoc
 //
-// @Sumary asas
-// @Description asx
-// @Accept json
-// @Produce json
-// @Param payload body LoginAccessPayload true "Account Credentials"
-// @Success 201 {object} store.Account "Account Registered"
-// @Failure 400 {object} error
-// @Failure 500 {object} error
-// @Router /login [post]
+//	@Sumary			asas
+//	@Description	asx
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		LoginAccessPayload	true	"Account Credentials"
+//	@Success		201		{object}	store.Account		"Account Registered"
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Router			/login [post]
 func (app *application) loginAccountHandler(w http.ResponseWriter, r *http.Request) {
 	var payload LoginAccessPayload
 	if err := readJSON(w, r, payload); err != nil {

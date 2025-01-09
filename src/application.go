@@ -8,7 +8,7 @@ import (
 
 	"github.com/deriannavy/microgo/docs"
 	"github.com/deriannavy/microgo/internal/auth"
-	"github.com/deriannavy/microgo/internal/mailer"
+	_ "github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,18 +16,18 @@ import (
 )
 
 type application struct {
-	config        config
-	store         store.Storage
-	mailer        mailer.Client
+	config config
+	store  store.Storage
+	//mailer        mailer.Client
 	authenticator auth.Authenticator
 }
 
 type authConfig struct {
 	basic basicConfig
-	token tokenconfig
+	token tokenConfig
 }
 
-type tokenconfig struct {
+type tokenConfig struct {
 	secret string
 	exp    time.Duration
 	iss    string
@@ -88,17 +88,17 @@ func (app *application) mount() http.Handler {
 
 		// [G E T]   D O C U M E N T A T I O N  --  O P S   P R I V A T E
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
-		r.Get("/docs/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
+		r.With(app.BasicAuthMiddleware()).Get("/docs/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		// A C C E S S   R O U T E R  --  P U B L I C
 		r.Post("/register", app.registerAccountHandler)
+		r.Put("/register/activate/{token}", app.activateAccountHandler)
 		r.Post("/login", app.loginAccountHandler)
 
 		// A C C O U N T   R O U T E R  --  P R I V A T E
 		r.Route("/account", func(r chi.Router) {
-			// A C C O U N T   A C T I V A T E
-			r.Put("/activate/{token}", app.activateAccountHandler)
-
+			// M I D D L E W A R E   A U T H
+			r.Use(app.AuthTokenMiddleware())
 			r.Route("/{accountId}", func(r chi.Router) {
 				// M I D D L E W A R E   A C C O U N T
 				r.Use(app.accountContextMiddleware)
@@ -109,6 +109,8 @@ func (app *application) mount() http.Handler {
 
 		// T R A N S A C T I O N   R O U T E R  --  P R I V A T E
 		r.Route("/transaction", func(r chi.Router) {
+			// M I D D L E W A R E   A U T H
+			r.Use(app.AuthTokenMiddleware())
 			// [P O S T]   I N D E X   T R A N S A C T I O N
 			r.Post("/", app.getIndexTransactionHandler)
 			// [P O S T]   T R A N S A C T I O N
