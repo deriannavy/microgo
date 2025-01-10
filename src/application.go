@@ -101,7 +101,7 @@ func (app *application) mount() http.Handler {
 			r.Use(app.AuthTokenMiddleware())
 			r.Route("/{accountId}", func(r chi.Router) {
 				// M I D D L E W A R E   A C C O U N T
-				r.Use(app.accountContextMiddleware)
+				// r.Use(app.accountContextMiddleware)
 				// [G E T]   A C C O U N T
 				r.Get("/", app.getAccountHandler)
 			})
@@ -121,9 +121,9 @@ func (app *application) mount() http.Handler {
 				// [G E T]   T R A N S A C T I O N
 				r.Get("/", app.getTransactionHandler)
 				// [P A T C H]   T R A N S A C T I O N
-				r.Patch("/", app.patchTransactionHandler)
+				r.Patch("/", app.checkTransactionOwnership("moderator", app.patchTransactionHandler))
 				// [D E L E T E]   T R A N S A C T I O N
-				r.Delete("/", app.deleteTransactionHandler)
+				r.Delete("/", app.checkTransactionOwnership("admin", app.deleteTransactionHandler))
 			})
 		})
 

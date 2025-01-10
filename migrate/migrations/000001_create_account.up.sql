@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS account(
    email     citext UNIQUE NOT NULL,
    password  bytea,
    created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-   is_active BOOLEAN NOT NULL DEFAULT FALSE
+   is_active BOOLEAN NOT NULL DEFAULT FALSE,
+   role_id BIGSERIAL REFERENCES "role"(id) NOT NULL
 )
 

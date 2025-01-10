@@ -4,11 +4,46 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/deriannavy/microgo/internal/store"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strconv"
 	"strings"
 )
+
+func (app *application) checkRolePrecedence(ctx context.Context, account *store.Account, roleName string) (bool, error) {
+	role, err := app.store.Role.GetByName(ctx, roleName)
+	if err != nil {
+		return false, err
+	}
+
+	return account.Role.Level >= role.Level, nil
+}
+
+func (app *application) checkTransactionOwnership(role string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		account := getAccountFromCtx(r)
+		transaction := getTransactionFromCtx(r)
+
+		if transaction.AccountId == account.Id {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		allowed, err := app.checkRolePrecedence(r.Context(), account, role)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			app.forbiddenErrorResponse(w, r, fmt.Errorf("You are not allowed to perform this action"))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

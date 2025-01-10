@@ -68,8 +68,10 @@ func (app *application) createTransactionHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
+	account := getAccountFromCtx(r)
+
 	transaction := &store.Transaction{
-		AccountId:   1,
+		AccountId:   account.Id,
 		Date:        payload.Date,
 		Amount:      payload.Amount,
 		Place:       payload.Place,

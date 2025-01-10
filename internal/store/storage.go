@@ -30,12 +30,16 @@ type Storage struct {
 		Update(context.Context, *Transaction) error
 		Delete(context.Context, int64) error
 	}
+	Role interface {
+		GetByName(context.Context, string) (*Role, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
 		Account:     &AccountStore{db},
 		Transaction: &TransactionStore{db},
+		Role:        &RoleStore{db},
 	}
 }
 

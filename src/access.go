@@ -89,14 +89,14 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 	//	false,
 	//)
 
-	if err != nil {
-
-		if err := app.store.Account.Delete(ctx, account.Id); err != nil {
-			app.internalServerError(w, r, err)
-		}
-		app.internalServerError(w, r, err)
-		return
-	}
+	//if err != nil {
+	//
+	//	if err := app.store.Account.Delete(ctx, account.Id); err != nil {
+	//		app.internalServerError(w, r, err)
+	//	}
+	//	app.internalServerError(w, r, err)
+	//	return
+	//}
 
 	if err := writeJSON(w, http.StatusCreated, nil); err != nil {
 		app.internalServerError(w, r, err)
@@ -140,6 +140,11 @@ func (app *application) loginAccountHandler(w http.ResponseWriter, r *http.Reque
 		default:
 			app.internalServerError(w, r, err)
 		}
+		return
+	}
+
+	if err := account.Password.Compare(payload.Password); err != nil {
+		app.unauthorizedErrorResponse(w, r, err)
 		return
 	}
 

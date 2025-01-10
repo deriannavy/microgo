@@ -24,6 +24,11 @@ func (app *application) unauthorizedErrorResponse(w http.ResponseWriter, r *http
 	writeJSONError(w, http.StatusUnauthorized, "Unauthorized")
 }
 
+func (app *application) forbiddenErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("Unauthorized basic Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
+	writeJSONError(w, http.StatusForbidden, "Forbidden")
+}
+
 func (app *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("Unauthorized basic Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
 
