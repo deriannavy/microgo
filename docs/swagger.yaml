@@ -1,5 +1,34 @@
 basePath: /v1
 definitions:
+  main.LoginAccessPayload:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 100
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  main.RegisterAccessPayload:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 100
+        minLength: 8
+        type: string
+      username:
+        maxLength: 100
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
   store.Account:
     properties:
       created_at:
@@ -8,6 +37,8 @@ definitions:
         type: string
       id:
         type: integer
+      is_active:
+        type: boolean
       username:
         type: string
     type: object
@@ -54,6 +85,56 @@ paths:
       - ApyKeyAuth: []
       tags:
       - Accounts
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: asx
+      parameters:
+      - description: Account Credentials
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.LoginAccessPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Account Registered
+          schema:
+            $ref: '#/definitions/store.Account'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: asx
+      parameters:
+      - description: Account Credentials
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.RegisterAccessPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Account Registered
+          schema:
+            $ref: '#/definitions/store.Account'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
 securityDefinitions:
   ApikeyAuth:
     in: header

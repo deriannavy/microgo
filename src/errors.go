@@ -6,7 +6,7 @@ import (
 )
 
 func (app *application) internalServerError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Printf("Internal Server Error %s Path: %s Error: %s", r.Method, r.URL.Path, err)
+	log.Printf("Internal Server Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
 
 	writeJSONError(w, http.StatusInternalServerError, "the server encountered a problem")
 }
@@ -17,4 +17,17 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 
 func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request, err error) {
 	writeJSONError(w, http.StatusNotFound, "Not found")
+}
+
+func (app *application) unauthorizedErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("Unauthorized basic Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
+	writeJSONError(w, http.StatusUnauthorized, "Unauthorized")
+}
+
+func (app *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("Unauthorized basic Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
+
+	w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+
+	writeJSONError(w, http.StatusUnauthorized, "Unauthorized")
 }
