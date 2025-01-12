@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/deriannavy/microgo/internal/auth"
 	"github.com/deriannavy/microgo/internal/cache"
+	"github.com/deriannavy/microgo/internal/rateLimiter"
 	"github.com/deriannavy/microgo/internal/store"
 	"time"
 )
@@ -13,6 +14,7 @@ type application struct {
 	cache  cache.Storage
 	//mailer        mailer.Client
 	authenticator auth.Authenticator
+	rateLimiter   rateLimiter.RateLimiter
 }
 
 type authConfig struct {
@@ -42,16 +44,18 @@ type sendGridConfig struct {
 }
 
 type config struct {
-	addr       string
-	env        string
-	version    string
-	db         dbConfig
-	apiURL     string
-	frontURL   string
-	apiVersion string
-	mailer     mailConfig
-	auth       authConfig
-	cache      cacheConfig
+	addr          string
+	env           string
+	version       string
+	allowedOrigin string
+	apiURL        string
+	frontURL      string
+	apiVersion    string
+	db            dbConfig
+	mailer        mailConfig
+	auth          authConfig
+	cache         cacheConfig
+	rateLimiter   rateLimiterConfig
 }
 
 type cacheConfig struct {
@@ -66,4 +70,10 @@ type dbConfig struct {
 	maxOpenConns int
 	maxIdleConns int
 	maxIdleTime  string
+}
+
+type rateLimiterConfig struct {
+	RequestsPerTimeFrame int
+	TimeFrame            time.Duration
+	Enabled              bool
 }
