@@ -14,7 +14,7 @@ type AccountStore struct {
 	rdb *redis.Client
 }
 
-const UserExpTime = time.Minute
+const AccountExpTime = time.Minute
 
 func (s *AccountStore) Get(ctx context.Context, accountId int64) (*store.Account, error) {
 	cacheKey := fmt.Sprintf("account-%d", accountId)
@@ -38,14 +38,14 @@ func (s *AccountStore) Get(ctx context.Context, accountId int64) (*store.Account
 }
 
 func (s *AccountStore) Set(ctx context.Context, account *store.Account) error {
-	cacheKey := fmt.Sprintf("user-%d", account.I)
+	cacheKey := fmt.Sprintf("account-%d", account.Id)
 
 	json, err := json.Marshal(account)
 	if err != nil {
 		return err
 	}
 
-	return s.rdb.SetEX(ctx, cacheKey, json, UserExpTime).Err()
+	return s.rdb.SetEX(ctx, cacheKey, json, AccountExpTime).Err()
 }
 
 func (s *AccountStore) Delete(ctx context.Context, accountId int64) {
