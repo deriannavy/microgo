@@ -66,11 +66,16 @@ func (s *AccountStore) Activate(ctx context.Context, token string) error {
 }
 func (s *AccountStore) Create(ctx context.Context, tx *sql.Tx, account *Account) error {
 	query := `
-		INSERT INTO account (username, password, email, role_id) VALUES ($1, $2, $3,$4) RETURNING id;
+		INSERT INTO account (username, password, email, role_id) VALUES ($1, $2, $3,(SELECT id FROM roles WHERE name = $4)) RETURNING id;
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
+
+	role := account.Role.Name
+	if role == "" {
+		role = "user"
+	}
 
 	err := tx.QueryRowContext(
 		ctx,
@@ -78,7 +83,7 @@ func (s *AccountStore) Create(ctx context.Context, tx *sql.Tx, account *Account)
 		account.Username,
 		account.Password.hash,
 		account.Email,
-		account.RoleId,
+		role,
 	).Scan(
 		&account.Id,
 	)

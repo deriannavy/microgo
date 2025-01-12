@@ -7,64 +7,11 @@ import (
 	"time"
 
 	"github.com/deriannavy/microgo/docs"
-	"github.com/deriannavy/microgo/internal/auth"
-	_ "github.com/deriannavy/microgo/internal/mailer"
-	"github.com/deriannavy/microgo/internal/store"
+	//"github.com/deriannavy/microgo/internal/mailer"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
-
-type application struct {
-	config config
-	store  store.Storage
-	//mailer        mailer.Client
-	authenticator auth.Authenticator
-}
-
-type authConfig struct {
-	basic basicConfig
-	token tokenConfig
-}
-
-type tokenConfig struct {
-	secret string
-	exp    time.Duration
-	iss    string
-}
-
-type basicConfig struct {
-	user string
-	pass string
-}
-
-type mailConfig struct {
-	sendGrid  sendGridConfig
-	exp       time.Duration
-	fromEmail string
-}
-
-type sendGridConfig struct {
-	apiKey string
-}
-
-type config struct {
-	addr       string
-	db         dbConfig
-	env        string
-	apiURL     string
-	frontURL   string
-	apiVersion string
-	mailer     mailConfig
-	auth       authConfig
-}
-
-type dbConfig struct {
-	addr         string
-	maxOpenConns int
-	maxIdleConns int
-	maxIdleTime  string
-}
 
 func (app *application) mount() http.Handler {
 
@@ -134,7 +81,7 @@ func (app *application) mount() http.Handler {
 
 func (app *application) run(mux http.Handler) error {
 
-	docs.SwaggerInfo.Version = version
+	docs.SwaggerInfo.Version = app.config.version
 	docs.SwaggerInfo.Host = app.config.apiURL
 	docs.SwaggerInfo.BasePath = app.config.apiVersion
 

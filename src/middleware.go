@@ -20,6 +20,30 @@ func (app *application) checkRolePrecedence(ctx context.Context, account *store.
 	return account.Role.Level >= role.Level, nil
 }
 
+func (app *application) getAccount(ctx context.Context, accountId int64) (*store.Account, error) {
+	if app.config.cache.enabled == false {
+		return app.store.Account.GetById(ctx, accountId)
+	}
+
+	account, err := app.cache.Account.Get(ctx, accountId)
+	if err != nil {
+		return nil, err
+	}
+
+	if account == nil {
+		account, err = app.store.Account.GetById(ctx, accountId)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := app.cache.Account.Set(ctx, account); err != nil {
+			return nil, err
+		}
+	}
+
+	return account, nil
+}
+
 func (app *application) checkTransactionOwnership(role string, next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -113,7 +137,7 @@ func (app *application) AuthTokenMiddleware() func(http.Handler) http.Handler {
 
 			ctx := r.Context()
 
-			account, err := app.store.Account.GetById(ctx, accountId)
+			account, err := app.getAccount(ctx, accountId)
 			if err != nil {
 				app.unauthorizedErrorResponse(w, r, err)
 				return

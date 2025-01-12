@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/deriannavy/microgo/internal/cache"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"time"
 
@@ -11,8 +13,6 @@ import (
 	// "github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 )
-
-const version = "0.0.1"
 
 //	@title			Swagger Example API
 //	@description	This is a sample server Petstore server.
@@ -41,6 +41,7 @@ func main() {
 			maxIdleTime:  env.GetEnvString("DB_MAX_IDLE_TIME", "15m"),
 		},
 		env:        env.GetEnvString("ENV", "development"),
+		version:    env.GetEnvString("VERSION", "1.0.0"),
 		apiURL:     env.GetEnvString("API_URL", "localhost:8080"),
 		frontURL:   env.GetEnvString("API_URL", "http://localhost:8080"),
 		apiVersion: env.GetEnvString("API_VERSION", "/v1"),
@@ -62,6 +63,12 @@ func main() {
 				iss:    env.GetEnvString("AUTH_TOKEN_ISS", "finance"),
 			},
 		},
+		cache: cacheConfig{
+			addr:    env.GetEnvString("CACHE_ADDR", "localhost:6379"),
+			pass:    env.GetEnvString("CACHE_PASS", ""),
+			db:      env.GetEnvInt("CACHE_DB", 0),
+			enabled: env.GetEnvBool("CACHE_ENABLED", true),
+		},
 	}
 
 	newDB, err := db.New(
@@ -79,6 +86,14 @@ func main() {
 
 	storage := store.NewStorage(newDB)
 
+	var cdb *redis.Client
+	if cfg.cache.enabled {
+		cdb = db.NewCacheClient(cfg.cache.addr, cfg.cache.pass, cfg.cache.db)
+		log.Println("Cache database connected...")
+	}
+
+	cacheStorage := cache.NewCacheStorage(cdb)
+
 	//mail := mailer.NewSendGrid(
 	//	cfg.mailer.sendGrid.apiKey,
 	//	cfg.mailer.fromEmail,
@@ -93,6 +108,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		store:  storage,
+		cache:  cacheStorage,
 		//mailer: mail,
 		authenticator: jwtAuthenticator,
 	}
