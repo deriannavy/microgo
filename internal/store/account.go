@@ -17,6 +17,8 @@ type Account struct {
 	Password  password `json:"-"`
 	CreatedAt string   `json:"created_at"`
 	IsActive  bool     `json:"is_active"`
+	RoleId    int64    `json:"role_id"`
+	Role      Role     `json:"role"`
 }
 
 type password struct {
@@ -33,6 +35,10 @@ func (p *password) Set(text string) error {
 	p.hash = hash
 
 	return nil
+}
+
+func (p *password) Compare(text string) error {
+	return bcrypt.CompareHashAndPassword(p.hash, []byte(text))
 }
 
 type AccountStore struct {
@@ -60,11 +66,16 @@ func (s *AccountStore) Activate(ctx context.Context, token string) error {
 }
 func (s *AccountStore) Create(ctx context.Context, tx *sql.Tx, account *Account) error {
 	query := `
-		INSERT INTO account (username, password, email) VALUES ($1, $2, $3) RETURNING id;
+		INSERT INTO account (username, password, email, role_id) VALUES ($1, $2, $3,(SELECT id FROM roles WHERE name = $4)) RETURNING id;
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
+
+	role := account.Role.Name
+	if role == "" {
+		role = "user"
+	}
 
 	err := tx.QueryRowContext(
 		ctx,
@@ -72,6 +83,7 @@ func (s *AccountStore) Create(ctx context.Context, tx *sql.Tx, account *Account)
 		account.Username,
 		account.Password.hash,
 		account.Email,
+		role,
 	).Scan(
 		&account.Id,
 	)
@@ -116,7 +128,15 @@ func (s *AccountStore) CreateAccountConfirmation(ctx context.Context, tx *sql.Tx
 
 func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, error) {
 	query := `
-		SELECT id, username, password, email, created_at FROM account WHERE id = $1 and is_active = true;
+		SELECT 
+		    a.id, a.username, a.password, a.email, a.created_at, 
+		    r.id, r.name, r.description, r.level
+		FROM
+		    account a
+		INNER JOIN role r ON 
+			r.id = a.role_id
+		WHERE 
+			a.id = $1 and a.is_active = true;
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
@@ -133,6 +153,10 @@ func (s *AccountStore) GetById(ctx context.Context, accountId int64) (*Account, 
 		&account.Password.hash,
 		&account.Email,
 		&account.CreatedAt,
+		&account.Role.Id,
+		&account.Role.Name,
+		&account.Role.Description,
+		&account.Role.Level,
 	)
 
 	if err != nil {

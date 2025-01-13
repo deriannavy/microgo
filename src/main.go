@@ -1,6 +1,9 @@
 package main
 
 import (
+	"github.com/deriannavy/microgo/internal/cache"
+	"github.com/deriannavy/microgo/internal/rateLimiter"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"time"
 
@@ -11,8 +14,6 @@ import (
 	// "github.com/deriannavy/microgo/internal/mailer"
 	"github.com/deriannavy/microgo/internal/store"
 )
-
-const version = "0.0.1"
 
 //	@title			Swagger Example API
 //	@description	This is a sample server Petstore server.
@@ -33,17 +34,19 @@ const version = "0.0.1"
 // @description
 func main() {
 	cfg := config{
-		addr: env.GetEnvString("ADDR", ":8080"),
+		addr:          env.GetEnvString("ADDR", ":8080"),
+		env:           env.GetEnvString("ENV", "development"),
+		version:       env.GetEnvString("VERSION", "1.0.0"),
+		apiURL:        env.GetEnvString("API_URL", "localhost:8080"),
+		frontURL:      env.GetEnvString("API_URL", "http://localhost:8080"),
+		apiVersion:    env.GetEnvString("API_VERSION", "/v1"),
+		allowedOrigin: env.GetEnvString("CORS_ALLOWED_ORIGIN", "http://localhost:5174"),
 		db: dbConfig{
 			addr:         env.GetEnvString("DB_ADDR", "postgresql://accounts:4cc0unts@localhost:5430/finance?sslmode=disable"),
 			maxOpenConns: env.GetEnvInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetEnvInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetEnvString("DB_MAX_IDLE_TIME", "15m"),
 		},
-		env:        env.GetEnvString("ENV", "development"),
-		apiURL:     env.GetEnvString("API_URL", "localhost:8080"),
-		frontURL:   env.GetEnvString("API_URL", "http://localhost:8080"),
-		apiVersion: env.GetEnvString("API_VERSION", "/v1"),
 		mailer: mailConfig{
 			fromEmail: env.GetEnvString("FROM_EMAIL", ""),
 			sendGrid: sendGridConfig{
@@ -62,6 +65,17 @@ func main() {
 				iss:    env.GetEnvString("AUTH_TOKEN_ISS", "finance"),
 			},
 		},
+		cache: cacheConfig{
+			addr:    env.GetEnvString("CACHE_ADDR", "localhost:6379"),
+			pass:    env.GetEnvString("CACHE_PASS", ""),
+			db:      env.GetEnvInt("CACHE_DB", 0),
+			enabled: env.GetEnvBool("CACHE_ENABLED", true),
+		},
+		rateLimiter: rateLimiterConfig{
+			RequestsPerTimeFrame: env.GetEnvInt("RATE_LIMITER_REQUEST_COUNT", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetEnvBool("RATE_LIMITER_ENABLE", true),
+		},
 	}
 
 	newDB, err := db.New(
@@ -79,10 +93,23 @@ func main() {
 
 	storage := store.NewStorage(newDB)
 
+	var cdb *redis.Client
+	if cfg.cache.enabled {
+		cdb = db.NewCacheClient(cfg.cache.addr, cfg.cache.pass, cfg.cache.db)
+		log.Println("Cache database connected...")
+	}
+
+	cacheStorage := cache.NewCacheStorage(cdb)
+
 	//mail := mailer.NewSendGrid(
 	//	cfg.mailer.sendGrid.apiKey,
 	//	cfg.mailer.fromEmail,
 	//)
+
+	rl := rateLimiter.NewFixedWindowRateLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
 
 	jwtAuthenticator := auth.NewJWTAuthenticator(
 		cfg.auth.token.secret,
@@ -93,8 +120,10 @@ func main() {
 	app := &application{
 		config: cfg,
 		store:  storage,
+		cache:  cacheStorage,
 		//mailer: mail,
 		authenticator: jwtAuthenticator,
+		rateLimiter:   rl,
 	}
 
 	mux := app.mount()

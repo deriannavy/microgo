@@ -24,10 +24,23 @@ func (app *application) unauthorizedErrorResponse(w http.ResponseWriter, r *http
 	writeJSONError(w, http.StatusUnauthorized, "Unauthorized")
 }
 
+func (app *application) forbiddenErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("Unauthorized basic Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
+	writeJSONError(w, http.StatusForbidden, "Forbidden")
+}
+
 func (app *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("Unauthorized basic Error %s Path: %s Error: %s", r.Method, r.URL.Path, err.Error())
 
 	w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 
 	writeJSONError(w, http.StatusUnauthorized, "Unauthorized")
+}
+
+func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request, retryAfter string) {
+	log.Printf("Rate limit exceed Path: %s Error: %s", r.Method, r.URL.Path)
+
+	w.Header().Set("X-Retry-After", retryAfter)
+
+	writeJSON(w, http.StatusTooManyRequests, "Rate limit Exceed, retry after"+retryAfter)
 }

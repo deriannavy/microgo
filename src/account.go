@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -60,8 +61,24 @@ func getAccountFromCtx(r *http.Request) *store.Account {
 //	@Security		ApyKeyAuth
 //	@Router			/accounts/{id} [get]
 func (app *application) getAccountHandler(w http.ResponseWriter, r *http.Request) {
+	accountId, err := strconv.ParseInt(chi.URLParam(r, "accountId"), 10, 64)
+	if err != nil || accountId <= 0 {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 
-	account := getAccountFromCtx(r)
+	ctx := r.Context()
+
+	account, err := app.getAccount(ctx, accountId)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.notFoundResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
 
 	if err := writeJSON(w, http.StatusOK, account); err != nil {
 		app.internalServerError(w, r, err)

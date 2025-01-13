@@ -1,70 +1,23 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"github.com/go-chi/cors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/deriannavy/microgo/docs"
-	"github.com/deriannavy/microgo/internal/auth"
-	_ "github.com/deriannavy/microgo/internal/mailer"
-	"github.com/deriannavy/microgo/internal/store"
+	//"github.com/deriannavy/microgo/internal/mailer"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
-
-type application struct {
-	config config
-	store  store.Storage
-	//mailer        mailer.Client
-	authenticator auth.Authenticator
-}
-
-type authConfig struct {
-	basic basicConfig
-	token tokenConfig
-}
-
-type tokenConfig struct {
-	secret string
-	exp    time.Duration
-	iss    string
-}
-
-type basicConfig struct {
-	user string
-	pass string
-}
-
-type mailConfig struct {
-	sendGrid  sendGridConfig
-	exp       time.Duration
-	fromEmail string
-}
-
-type sendGridConfig struct {
-	apiKey string
-}
-
-type config struct {
-	addr       string
-	db         dbConfig
-	env        string
-	apiURL     string
-	frontURL   string
-	apiVersion string
-	mailer     mailConfig
-	auth       authConfig
-}
-
-type dbConfig struct {
-	addr         string
-	maxOpenConns int
-	maxIdleConns int
-	maxIdleTime  string
-}
 
 func (app *application) mount() http.Handler {
 
@@ -74,6 +27,15 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(app.RateLimiterMiddleware)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{app.config.allowedOrigin},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
@@ -101,7 +63,7 @@ func (app *application) mount() http.Handler {
 			r.Use(app.AuthTokenMiddleware())
 			r.Route("/{accountId}", func(r chi.Router) {
 				// M I D D L E W A R E   A C C O U N T
-				r.Use(app.accountContextMiddleware)
+				// r.Use(app.accountContextMiddleware)
 				// [G E T]   A C C O U N T
 				r.Get("/", app.getAccountHandler)
 			})
@@ -121,9 +83,9 @@ func (app *application) mount() http.Handler {
 				// [G E T]   T R A N S A C T I O N
 				r.Get("/", app.getTransactionHandler)
 				// [P A T C H]   T R A N S A C T I O N
-				r.Patch("/", app.patchTransactionHandler)
+				r.Patch("/", app.checkTransactionOwnership("moderator", app.patchTransactionHandler))
 				// [D E L E T E]   T R A N S A C T I O N
-				r.Delete("/", app.deleteTransactionHandler)
+				r.Delete("/", app.checkTransactionOwnership("admin", app.deleteTransactionHandler))
 			})
 		})
 
@@ -134,7 +96,7 @@ func (app *application) mount() http.Handler {
 
 func (app *application) run(mux http.Handler) error {
 
-	docs.SwaggerInfo.Version = version
+	docs.SwaggerInfo.Version = app.config.version
 	docs.SwaggerInfo.Host = app.config.apiURL
 	docs.SwaggerInfo.BasePath = app.config.apiVersion
 
@@ -146,7 +108,34 @@ func (app *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
+	shutdown := make(chan error)
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		_, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		log.Printf("Signal caught %s", s.String())
+		shutdown <- srv.Shutdown(context.Background())
+	}()
+
 	log.Printf("Starting server at %s", app.config.addr)
 
-	return srv.ListenAndServe()
+	err := srv.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	err = <-shutdown
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Server has stopped %s", app.config.addr)
+
+	return nil
 }

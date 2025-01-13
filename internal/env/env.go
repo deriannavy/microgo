@@ -24,3 +24,15 @@ func GetEnvInt(key string, fallback int) int {
 	}
 	return valAsInt
 }
+
+func GetEnvBool(key string, fallback bool) bool {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	boolVal, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return boolVal
+}
